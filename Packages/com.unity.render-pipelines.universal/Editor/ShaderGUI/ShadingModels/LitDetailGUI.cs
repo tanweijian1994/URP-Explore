@@ -1,10 +1,9 @@
-using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
 
-namespace Game.Editor.ShaderGUI
+namespace UnityEditor.Rendering.Universal.ShaderGUI
 {
-    public class LitDetailGUICopy
+    internal class LitDetailGUI
     {
         public static class Styles
         {
