@@ -4,29 +4,26 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [10.4.0] - 2020-01-26
+## [11.0.0] - 2020-10-21
 
 ### Added
-- Support for the XboxSeries platform has been added.
-
-### Fixed
-- Fixed parameters order on inspectors for Volume Components without custom editor
-- Fixed the display name of a Volume Parameter when is defined the attribute InspectorName
-
-## [10.3.1] - 2020-01-26
-
-Version Updated
-The version number for this package has increased due to a version update of a related graphics package.
-
-## [10.3.0] - 2020-11-16
-
-### Added
-- New function in GeometryTools.hlsl to calculate triangle edge and full triangle culling.
 - Support for the PlayStation 5 platform has been added.
+- Support for the XboxSeries platform has been added.
+- New API in DynamicResolutionHandler to handle multicamera rendering for hardware mode. Changing cameras and resetting scaling per camera should be safe.
+- New API functions with no side effects in DynamicResolutionHandler, to retrieve resolved drs scale and to apply DRS on a size.
 
 ### Fixed
+- Fixed the default background color for previews to use the original color.
 - Fixed a bug in FreeCamera which would only provide a speed boost for the first frame when pressing the Shfit key.
+- Fixed spacing between property fields on the Volume Component Editors.
+- Fixed ALL/NONE to maintain the state on the Volume Component Editors.
+- Fixed the selection of the Additional properties from ALL/NONE when the option "Show additional properties" is disabled
+- Fixed ACES tonemaping for Nintendo Switch by forcing some shader color conversion functions to full float precision.
 - Fixed missing warning UI about Projector component being unsupported (case 1300327).
+- Fixed the display name of a Volume Parameter when is defined the attribute InspectorName
+- Fixed ACES tonemaping on mobile platforms by forcing some shader color conversion functions to full float precision.
+- Fix crash on VolumeComponentWithQualityEditor when the current Pipeline is not HDRP
+- Calculating correct rtHandleScale by considering the possible pixel rounding when DRS is on
 
 ## [10.2.0] - 2020-10-19
 
@@ -91,6 +88,7 @@ The version number for this package has increased due to a version update of a r
 - Fix artifacts on Adreno 630 GPUs when using ACES Tonemapping
 - Fixed a null ref in the volume component list when there is no volume components in the project.
 - Fixed issue with volume manager trying to access a null volume.
+- HLSL codegen will work with C# file using both the `GenerateHLSL` and C# 7 features.
 
 ### Changed
 - Restored usage of ENABLE_VR to fix compilation errors on some platforms.

@@ -1,6 +1,10 @@
 #ifndef UNITY_COMMON_INCLUDED
 #define UNITY_COMMON_INCLUDED
 
+#if SHADER_API_MOBILE || SHADER_API_GLES || SHADER_API_GLES3
+#pragma warning (disable : 3205) // conversion of larger type to smaller
+#endif
+
 // Convention:
 
 // Unity is Y up and left handed in world space
@@ -566,7 +570,7 @@ TEMPLATE_2_REAL(PositivePow, base, power, return pow(abs(base), power))
 // -As a replacement for pow(0,y) where y >= 1, the result of SafePositivePow(x,y) should be close enough to 0.
 // -For cases where we substitute for pow(0,y) where 0 < y < 1, SafePositivePow(x,y) will quickly reach 1 as y -> 0, while
 // normally pow(0,y) would give 0 instead of 1 for all 0 < y.
-// eg: if we #define FLT_EPS  5.960464478e-8 (for fp32), 
+// eg: if we #define FLT_EPS  5.960464478e-8 (for fp32),
 // SafePositivePow(0, 0.1)   = 0.1894646
 // SafePositivePow(0, 0.01)  = 0.8467453
 // SafePositivePow(0, 0.001) = 0.9835021
@@ -779,7 +783,8 @@ uint GetMipCount(Texture2D tex)
 #if defined(SHADER_API_D3D11) || defined(SHADER_API_D3D12) || defined(SHADER_API_D3D11_9X) || defined(SHADER_API_XBOXONE) || defined(SHADER_API_PSSL)
     #define MIP_COUNT_SUPPORTED 1
 #endif
-#if (defined(SHADER_API_OPENGL) || defined(SHADER_API_VULKAN)) && !defined(SHADER_STAGE_COMPUTE)
+    // TODO: Bug workaround, switch defines GLCORE when it shouldn't
+#if ((defined(SHADER_API_GLCORE) && !defined(SHADER_API_SWITCH)) || defined(SHADER_API_VULKAN)) && !defined(SHADER_STAGE_COMPUTE)
     // OpenGL only supports textureSize for width, height, depth
     // textureQueryLevels (GL_ARB_texture_query_levels) needs OpenGL 4.3 or above and doesn't compile in compute shaders
     // tex.GetDimensions converted to textureQueryLevels
@@ -1339,5 +1344,9 @@ float SharpenAlpha(float alpha, float alphaClipTreshold)
 
 // These clamping function to max of floating point 16 bit are use to prevent INF in code in case of extreme value
 TEMPLATE_1_REAL(ClampToFloat16Max, value, return min(value, HALF_MAX))
+
+#if SHADER_API_MOBILE || SHADER_API_GLES || SHADER_API_GLES3
+#pragma warning (enable : 3205) // conversion of larger type to smaller
+#endif
 
 #endif // UNITY_COMMON_INCLUDED

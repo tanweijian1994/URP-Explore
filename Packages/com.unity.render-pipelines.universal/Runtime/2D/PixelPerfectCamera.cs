@@ -196,7 +196,7 @@ namespace UnityEngine.Experimental.Rendering.Universal
             m_Internal.CalculateCameraProperties(rtSize.x, rtSize.y);
         }
 
-        void OnBeginFrameRendering(ScriptableRenderContext context, Camera[] cameras)
+        void OnBeginContextRendering(ScriptableRenderContext context, List<Camera> cameras)
         {
             var rtSize = cameraRTSize;
             m_Internal.CalculateCameraProperties(rtSize.x, rtSize.y);
@@ -234,7 +234,7 @@ namespace UnityEngine.Experimental.Rendering.Universal
         {
             m_CinemachineCompatibilityMode = false;
 
-            RenderPipelineManager.beginFrameRendering += OnBeginFrameRendering;
+            RenderPipelineManager.beginContextRendering += OnBeginContextRendering;
             RenderPipelineManager.beginCameraRendering += OnBeginCameraRendering;
             RenderPipelineManager.endCameraRendering += OnEndCameraRendering;
 
@@ -246,7 +246,7 @@ namespace UnityEngine.Experimental.Rendering.Universal
 
         internal void OnDisable()
         {
-            RenderPipelineManager.beginFrameRendering -= OnBeginFrameRendering;
+            RenderPipelineManager.beginContextRendering -= OnBeginContextRendering;
             RenderPipelineManager.beginCameraRendering -= OnBeginCameraRendering;
             RenderPipelineManager.endCameraRendering -= OnEndCameraRendering;
 
@@ -292,6 +292,7 @@ namespace UnityEngine.Experimental.Rendering.Universal
 
             GUI.color = oldColor;
         }
+
 #endif
 
 #if UNITY_EDITOR
@@ -304,6 +305,7 @@ namespace UnityEngine.Experimental.Rendering.Universal
                 OnDisable();
             }
         }
+
 #endif
     }
 }

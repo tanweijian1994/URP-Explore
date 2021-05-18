@@ -53,7 +53,7 @@ namespace UnityEngine.Experimental.Rendering.RenderGraphModule
         {
             CheckResource(input.handle);
 
-            if (!m_Resources.IsResourceImported(input.handle) && m_Resources.TextureNeedsFallback(input))
+            if (!m_Resources.IsRenderGraphResourceImported(input.handle) && m_Resources.TextureNeedsFallback(input))
             {
                 var texDimension = m_Resources.GetTextureResourceDesc(input.handle).dimension;
                 if (texDimension == TextureXR.dimension)
@@ -231,6 +231,7 @@ namespace UnityEngine.Experimental.Rendering.RenderGraphModule
         {
             Dispose(true);
         }
+
         #endregion
 
         #region Internal Interface
@@ -256,7 +257,7 @@ namespace UnityEngine.Experimental.Rendering.RenderGraphModule
 #if DEVELOPMENT_BUILD || UNITY_EDITOR
             if (res.IsValid())
             {
-                int transientIndex = m_Resources.GetResourceTransientIndex(res);
+                int transientIndex = m_Resources.GetRenderGraphResourceTransientIndex(res);
                 if (transientIndex == m_RenderPass.index)
                 {
                     Debug.LogError($"Trying to read or write a transient resource at pass {m_RenderPass.name}.Transient resource are always assumed to be both read and written.");
@@ -278,6 +279,7 @@ namespace UnityEngine.Experimental.Rendering.RenderGraphModule
         {
             m_RenderPass.GenerateDebugData(value);
         }
+
         #endregion
     }
 }

@@ -111,10 +111,12 @@ namespace UnityEngine.Rendering
             baseComponentTypeArray = CoreUtils.GetAllTypesDerivedFrom<VolumeComponent>()
                 .Where(t => !t.IsAbstract).ToArray();
 
+            var flags = System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic;
             // Keep an instance of each type to be used in a virtual lowest priority global volume
             // so that we have a default state to fallback to when exiting volumes
             foreach (var type in baseComponentTypeArray)
             {
+                type.GetMethod("Init", flags)?.Invoke(null, null);
                 var inst = (VolumeComponent)ScriptableObject.CreateInstance(type);
                 m_ComponentsDefaultState.Add(inst);
             }
@@ -238,7 +240,7 @@ namespace UnityEngine.Rendering
 
                 for (int i = 0; i < count; i++)
                 {
-                    if(target.parameters[i] != null)
+                    if (target.parameters[i] != null)
                     {
                         target.parameters[i].overrideState = false;
                         target.parameters[i].SetValue(component.parameters[i]);

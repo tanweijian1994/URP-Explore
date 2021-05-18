@@ -46,7 +46,14 @@ namespace UnityEditor.Rendering.Universal
             public static GUIContent addditionalLightsRenderingModeText = EditorGUIUtility.TrTextContent("Additional Lights", "Additional lights support.");
             public static GUIContent perObjectLimit = EditorGUIUtility.TrTextContent("Per Object Limit", "Maximum amount of additional lights. These lights are sorted and culled per-object.");
             public static GUIContent supportsAdditionalShadowsText = EditorGUIUtility.TrTextContent("Cast Shadows", "If enabled shadows will be supported for spot lights.\n");
-            public static GUIContent additionalLightsShadowmapResolution = EditorGUIUtility.TrTextContent("Shadow Resolution", "All additional lights are packed into a single shadowmap atlas. This setting controls the atlas size.");
+            public static GUIContent additionalLightsShadowmapResolution = EditorGUIUtility.TrTextContent("Shadow Atlas Resolution", "All additional lights are packed into a single shadowmap atlas. This setting controls the atlas size.");
+            public static GUIContent additionalLightsShadowResolutionTiers = EditorGUIUtility.TrTextContent("Shadow Resolution Tiers", $"Additional Lights Shadow Resolution Tiers. Rounded to the next power of two, and clamped to be at least {UniversalAdditionalLightData.AdditionalLightsShadowMinimumResolution}.");
+            public static GUIContent[] additionalLightsShadowResolutionTierNames =
+            {
+                new GUIContent("Low"),
+                new GUIContent("Medium"),
+                new GUIContent("High")
+            };
 
             // Shadow settings
             public static GUIContent shadowDistanceText = EditorGUIUtility.TrTextContent("Max Distance", "Maximum shadow rendering distance.");
@@ -58,6 +65,7 @@ namespace UnityEditor.Rendering.Universal
             // Post-processing
             public static GUIContent colorGradingMode = EditorGUIUtility.TrTextContent("Grading Mode", "Defines how color grading will be applied. Operators will react differently depending on the mode.");
             public static GUIContent colorGradingLutSize = EditorGUIUtility.TrTextContent("LUT size", "Sets the size of the internal and external color grading lookup textures (LUTs).");
+            public static GUIContent useFastSRGBLinearConversion = EditorGUIUtility.TrTextContent("Fast sRGB/Linear conversions", "Use faster, but less accurate approximation functions when converting between the sRGB and Linear color spaces.");
             public static string colorGradingModeWarning = "HDR rendering is required to use the high dynamic range color grading mode. The low dynamic range will be used instead.";
             public static string colorGradingModeSpecInfo = "The high dynamic range color grading mode works best on platforms that support floating point textures.";
             public static string colorGradingLutSizeWarning = "The minimal recommended LUT size for the high dynamic range color grading mode is 32. Using lower values will potentially result in color banding and posterization effects.";
@@ -119,6 +127,10 @@ namespace UnityEditor.Rendering.Universal
         SerializedProperty m_AdditionalLightShadowsSupportedProp;
         SerializedProperty m_AdditionalLightShadowmapResolutionProp;
 
+        SerializedProperty m_AdditionalLightsShadowResolutionTierLowProp;
+        SerializedProperty m_AdditionalLightsShadowResolutionTierMediumProp;
+        SerializedProperty m_AdditionalLightsShadowResolutionTierHighProp;
+
         SerializedProperty m_ShadowDistanceProp;
         SerializedProperty m_ShadowCascadeCountProp;
         SerializedProperty m_ShadowCascade2SplitProp;
@@ -139,6 +151,7 @@ namespace UnityEditor.Rendering.Universal
         LightRenderingMode selectedLightRenderingMode;
         SerializedProperty m_ColorGradingMode;
         SerializedProperty m_ColorGradingLutSize;
+        SerializedProperty m_UseFastSRGBLinearConversion;
 
         SerializedProperty m_UseAdaptivePerformance;
         EditorPrefBoolFlags<EditorUtils.Unit> m_State;
@@ -194,6 +207,10 @@ namespace UnityEditor.Rendering.Universal
             m_AdditionalLightShadowsSupportedProp = serializedObject.FindProperty("m_AdditionalLightShadowsSupported");
             m_AdditionalLightShadowmapResolutionProp = serializedObject.FindProperty("m_AdditionalLightsShadowmapResolution");
 
+            m_AdditionalLightsShadowResolutionTierLowProp = serializedObject.FindProperty("m_AdditionalLightsShadowResolutionTierLow");
+            m_AdditionalLightsShadowResolutionTierMediumProp = serializedObject.FindProperty("m_AdditionalLightsShadowResolutionTierMedium");
+            m_AdditionalLightsShadowResolutionTierHighProp = serializedObject.FindProperty("m_AdditionalLightsShadowResolutionTierHigh");
+
             m_ShadowDistanceProp = serializedObject.FindProperty("m_ShadowDistance");
 
             m_ShadowCascadeCountProp = serializedObject.FindProperty("m_ShadowCascadeCount");
@@ -213,6 +230,8 @@ namespace UnityEditor.Rendering.Universal
 
             m_ColorGradingMode = serializedObject.FindProperty("m_ColorGradingMode");
             m_ColorGradingLutSize = serializedObject.FindProperty("m_ColorGradingLutSize");
+
+            m_UseFastSRGBLinearConversion = serializedObject.FindProperty("m_UseFastSRGBLinearConversion");
 
             m_UseAdaptivePerformance = serializedObject.FindProperty("m_UseAdaptivePerformance");
 
@@ -322,6 +341,7 @@ namespace UnityEditor.Rendering.Universal
                 disableGroup |= !m_AdditionalLightShadowsSupportedProp.boolValue;
                 EditorGUI.BeginDisabledGroup(disableGroup);
                 EditorGUILayout.PropertyField(m_AdditionalLightShadowmapResolutionProp, Styles.additionalLightsShadowmapResolution);
+                DrawShadowResolutionTierSettings();
                 EditorGUI.EndDisabledGroup();
 
                 EditorGUI.indentLevel--;
@@ -331,6 +351,44 @@ namespace UnityEditor.Rendering.Universal
                 EditorGUILayout.Space();
             }
             EditorGUILayout.EndFoldoutHeaderGroup();
+        }
+
+        void DrawShadowResolutionTierSettings()
+        {
+            // UI code adapted from HDRP U.I logic implemented in com.unity.render-pipelines.high-definition/Editor/RenderPipeline/Settings/SerializedScalableSetting.cs )
+
+            var rect = GUILayoutUtility.GetRect(0, float.Epsilon, EditorGUIUtility.singleLineHeight, EditorGUIUtility.singleLineHeight);
+            var contentRect = EditorGUI.PrefixLabel(rect, Styles.additionalLightsShadowResolutionTiers);
+
+            EditorGUI.BeginChangeCheck();
+
+            const int k_ShadowResolutionTiersCount = 3;
+            var values = new[] { m_AdditionalLightsShadowResolutionTierLowProp, m_AdditionalLightsShadowResolutionTierMediumProp, m_AdditionalLightsShadowResolutionTierHighProp};
+
+            var num = contentRect.width / (float)k_ShadowResolutionTiersCount;  // space allocated for every field including the label
+
+            var indentLevel = EditorGUI.indentLevel;
+            EditorGUI.indentLevel = 0; // Reset the indentation
+
+            float pixelShift = 0;  // Variable to keep track of the current pixel shift in the rectangle we were assigned for this whole section.
+            for (var index = 0; index < k_ShadowResolutionTiersCount; ++index)
+            {
+                var labelWidth = Mathf.Clamp(EditorStyles.label.CalcSize(Styles.additionalLightsShadowResolutionTierNames[index]).x, 0, num);
+                EditorGUI.LabelField(new Rect(contentRect.x + pixelShift, contentRect.y, labelWidth, contentRect.height), Styles.additionalLightsShadowResolutionTierNames[index]);
+                pixelShift += labelWidth;           // We need to remove from the position the label size that we've just drawn and shift by it's length
+                float spaceLeft = num - labelWidth; // The amount of space left for the field
+                if (spaceLeft > 2) // If at least two pixels are left to draw this field, draw it, otherwise, skip
+                {
+                    var fieldSlot = new Rect(contentRect.x + pixelShift, contentRect.y, num - labelWidth, contentRect.height); // Define the rectangle for the field
+                    int value = EditorGUI.DelayedIntField(fieldSlot, values[index].intValue);
+                    values[index].intValue = Mathf.Max(UniversalAdditionalLightData.AdditionalLightsShadowMinimumResolution, Mathf.NextPowerOfTwo(value));
+                }
+                pixelShift += spaceLeft;  // Shift by the slot that was left for the field
+            }
+
+            EditorGUI.indentLevel = indentLevel;
+
+            EditorGUI.EndChangeCheck();
         }
 
         void DrawShadowSettings()
@@ -395,6 +453,8 @@ namespace UnityEditor.Rendering.Universal
                 if (isHdrOn && m_ColorGradingMode.intValue == (int)ColorGradingMode.HighDynamicRange && m_ColorGradingLutSize.intValue < 32)
                     EditorGUILayout.HelpBox(Styles.colorGradingLutSizeWarning, MessageType.Warning);
 
+                EditorGUILayout.PropertyField(m_UseFastSRGBLinearConversion, Styles.useFastSRGBLinearConversion);
+
                 EditorGUI.indentLevel--;
                 EditorGUILayout.Space();
                 EditorGUILayout.Space();
@@ -436,7 +496,7 @@ namespace UnityEditor.Rendering.Universal
 
         void DrawRendererListLayout(ReorderableList list, SerializedProperty prop)
         {
-           list.drawElementCallback = (Rect rect, int index, bool isActive, bool isFocused) =>
+            list.drawElementCallback = (Rect rect, int index, bool isActive, bool isFocused) =>
             {
                 rect.y += 2;
                 Rect indexRect = new Rect(rect.x, rect.y, 14, EditorGUIUtility.singleLineHeight);
@@ -527,7 +587,7 @@ namespace UnityEditor.Rendering.Universal
                 UpdateDefaultRendererValue(index, newIndex);
             };
         }
-        
+
         void UpdateDefaultRendererValue(int index)
         {
             // If the index that is being removed is lower than the default renderer value,
@@ -562,6 +622,7 @@ namespace UnityEditor.Rendering.Universal
                 m_DefaultRendererProp.intValue++;
             }
         }
+
         bool ValidateRendererGraphicsAPIs(UniversalRenderPipelineAsset pipelineAsset, out string unsupportedGraphicsApisMessage)
         {
             // Check the list of Renderers against all Graphics APIs the player is built with.
