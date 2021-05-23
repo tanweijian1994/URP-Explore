@@ -3,7 +3,6 @@ Shader "Unlit/Overlay"
     Properties
     {
         [HideInInspector][MainTexture] _BaseMap("Texture", 2D) = "white" {}
-        [MainColor] _BaseColor("Color", Color) = (1, 1, 1, 1)
     }
     
     HLSLINCLUDE
@@ -14,6 +13,7 @@ Shader "Unlit/Overlay"
         float4 positionOS      : POSITION;
         float4 color           : COLOR;
         float2 uv              : TEXCOORD0;
+        
         UNITY_VERTEX_INPUT_INSTANCE_ID
     };
 
@@ -34,9 +34,9 @@ Shader "Unlit/Overlay"
     TEXTURE2D(_BaseMap);
     SAMPLER(sampler_BaseMap);
 
-    Varyings VertDefault(Attributes input)
+    Varyings Vert(Attributes input)
     {
-        Varyings output = (Varyings)0;
+        Varyings output;
 
         UNITY_SETUP_INSTANCE_ID(input);
         UNITY_TRANSFER_INSTANCE_ID(input, output);
@@ -48,16 +48,14 @@ Shader "Unlit/Overlay"
         return output;
     }
 
-    half4 FragDefault(Varyings input) : SV_Target
+    half4 Frag(Varyings input) : SV_Target
     {
         UNITY_SETUP_INSTANCE_ID(input);
         UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
 
         half4 texColor = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.uv);
-        half3 color = texColor.rgb * input.color.rgb;
-        half alpha = texColor.a * input.color.a;
         
-        return half4(color, alpha);
+        return texColor;
     }
     
     ENDHLSL
@@ -73,14 +71,19 @@ Shader "Unlit/Overlay"
         ZWrite Off
         Blend SrcAlpha OneMinusSrcAlpha
         
+        Stencil
+        {
+            Ref 2
+            Comp Always
+            Pass Replace
+        }
+
         Pass
         {
-            Name "Overlay"
-            
             HLSLPROGRAM
             
-            #pragma vertex VertDefault
-            #pragma fragment FragDefault
+            #pragma vertex Vert
+            #pragma fragment Frag
 
             #pragma multi_compile_instancing
             
