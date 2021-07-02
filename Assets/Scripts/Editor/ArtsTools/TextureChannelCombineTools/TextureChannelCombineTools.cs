@@ -5,7 +5,7 @@ using UnityEditor.UIElements;
 
 public class TextureChannelCombineTools : EditorWindow
 {
-    [MenuItem("Arts Tools/Texture/ChannelCombineTools")]
+    [MenuItem("Arts Tools/Texture/ChannelCombineTools[window]")]
     public static void ShowExample()
     {
         TextureChannelCombineTools wnd = GetWindow<TextureChannelCombineTools>();
