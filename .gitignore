@@ -76,3 +76,9 @@ crashlytics-build.properties
 /[Aa]ssets/[Ss]treamingAssets/aa/*
 
 /Packages/packages-lock.json
+
+/Assets/AssetGraph/Cache
+/Assets/AssetGraph/Cache.meta
+
+Assets/AssetGraph/AssetBundles/Cache
+Assets/AssetGraph/AssetBundles/Cache.meta
